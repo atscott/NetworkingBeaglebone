@@ -1,4 +1,4 @@
-ipse
+#Eclipse
 .classpath
 .project
 .settings/
@@ -15,5 +15,3 @@ ipse
 log/
 target/
 Debug/
-/Debug
-/Debug

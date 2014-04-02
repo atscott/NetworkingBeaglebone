@@ -118,26 +118,29 @@ void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1) {
 	char *buffer = malloc(BLOCKSIZE);
 	// If the return is less than 0l, there is an error.
 
-	// Fill the buffer with all zeros.
-	memset(&buffer[0], 0, BLOCKSIZE);
+	for (index = 0; index < ITERATION_COUNT; index++) {
+		// Fill the buffer with all zeros.
+		memset(&buffer[0], 0, BLOCKSIZE);
 
-	// Read from the buffer when data arrives.
-	n = read(newsockfd, buffer, BLOCKSIZE);
+		// Read from the buffer when data arrives.
+		n = read(newsockfd, buffer, BLOCKSIZE);
 
-	if (n < 0) {
-		error("ERROR reading from socket");
-	} else {
-		bytesReceived += n;
+		if (n < 0) {
+			error("ERROR reading from socket");
+		} else {
+			bytesReceived += n;
+		}
+
+		// Print the message.
+		printf("Here is the value sent: %s\n", buffer);
+		if (atoi(buffer) == 1) {
+			turnLightOn(gpioOutputPortLight1);
+		} else {
+			turnLightOff(gpioOutputPortLight1);
+		}
+		printf("Bytes received: %llu\n", bytesReceived);
+
 	}
-
-	// Print the message.
-	printf("Here is the value sent: %d\n", atoi(buffer));
-	if (atoi(buffer) == 1) {
-		turnLightOn(gpioOutputPortLight1);
-	} else {
-		turnLightOff(gpioOutputPortLight1);
-	}
-	printf("Bytes received: %llu\n", bytesReceived);
 
 	close(newsockfd);
 }
