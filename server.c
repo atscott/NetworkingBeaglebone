@@ -13,7 +13,8 @@
 void setupGpioOutput(uint8_t gpioOutputPort);
 void turnLightOn(int outputPin);
 void turnLightOff(int outputPin);
-void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1);
+void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1,
+		uint8_t gpioOutputPortLight2);
 int createServer(int portno);
 /*
  * This method will print an error message.
@@ -69,7 +70,8 @@ int main(int argc, char *argv[]) {
 			error("ERROR on accept");
 		} else {
 			fprintf(stderr, "Client connected\n");
-			handleClientConnection(newsockfd, gpioOutputPortLight1);
+			handleClientConnection(newsockfd, gpioOutputPortLight1,
+					gpioOutputPortLight2);
 		}
 
 		sleep(1);
@@ -111,7 +113,8 @@ int createServer(int portno) {
 	return sockfd;
 }
 
-void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1) {
+void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1,
+		uint8_t gpioOutputPortLight2) {
 	int n;
 	int index;
 	uint64_t bytesReceived = 0;
@@ -125,18 +128,25 @@ void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1) {
 		// Read from the buffer when data arrives.
 		n = read(newsockfd, buffer, BLOCKSIZE);
 
-		if (n < 0) {
+		if (n < 1) {
 			error("ERROR reading from socket");
+			close(newsockfd);
 		} else {
 			bytesReceived += n;
 		}
 
 		// Print the message.
 		printf("Here is the value sent: %s\n", buffer);
-		if (atoi(buffer) == 1) {
-			turnLightOn(gpioOutputPortLight1);
-		} else {
+		if (atoi(buffer) == 0) {
 			turnLightOff(gpioOutputPortLight1);
+		} else if (atoi(buffer) == 1) {
+			turnLightOn(gpioOutputPortLight1);
+		} else if (atoi(buffer) == 2) {
+			turnLightOff(gpioOutputPortLight2);
+		} else if (atoi(buffer) == 3) {
+			turnLightOn(gpioOutputPortLight2);
+		} else {
+			printf("Unknown request\n");
 		}
 		printf("Bytes received: %llu\n", bytesReceived);
 
