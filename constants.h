@@ -1,0 +1,8 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+#define BLOCKSIZE (1024*512)
+#define ITERATION_COUNT (3000000)
+
+
+#endif
