@@ -153,7 +153,7 @@ void *handleClientConnection(void *ptr) {
 		// Read from the buffer when data arrives.
 		n = read(clientSocket, buffer, BLOCKSIZE);
 
-		if (n < 1) {
+		if (n < 0) {
 			error("ERROR reading from socket");
 			close(clientSocket);
 		} else {
