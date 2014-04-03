@@ -161,7 +161,7 @@ void *handleClientConnection(void *ptr) {
 		}
 
 		// Print the message.
-		printf("Here is the value sent: %s\n", buffer);
+		printf("Here is the value sent from connection %d: %s\n", clientSocket, buffer);
 		if (atoi(buffer) == 0) {
 			turnLightOff(gpioOutputPortLight1);
 		} else if (atoi(buffer) == 1) {
@@ -173,7 +173,7 @@ void *handleClientConnection(void *ptr) {
 		} else {
 			printf("Unknown request\n");
 		}
-		printf("Bytes received: %llu\n", bytesReceived);
+		printf("Bytes received from connection %d: %llu\n",clientSocket, bytesReceived);
 
 	}
 
