@@ -5,17 +5,25 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include "constants.h"
 #include "gpioInterface.h"
 #include <unistd.h>
 
+typedef struct ClientArgs {
+	int clientSocket;
+	uint8_t gpioOutputPortLight1;
+	uint8_t gpioOutputPortLight2;
+} ClientArgs;
 void setupGpioOutput(uint8_t gpioOutputPort);
 void turnLightOn(int outputPin);
 void turnLightOff(int outputPin);
-void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1,
+void *handleClientConnection(void* ptr);
+void startThreadForClient(int clientSocket, uint8_t gpioOutputPortLight1,
 		uint8_t gpioOutputPortLight2);
 int createServer(int portno);
+
 /*
  * This method will print an error message.
  * char *msg - This is the prelude to the error message that should be printed.
@@ -40,7 +48,7 @@ int main(int argc, char *argv[]) {
 	uint32_t clilen;
 	uint8_t gpioOutputPortLight1;
 	uint8_t gpioOutputPortLight2;
-	int newsockfd, portno;
+	int clientSocket, portno;
 	int sockfd;
 	struct sockaddr_in cli_addr;
 
@@ -63,14 +71,14 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		fprintf(stderr, "Waiting for client...\n");
 		// Block until a client has connected to the server.  This returns a file descriptor for the connection.
-		newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &clilen);
+		clientSocket = accept(sockfd, (struct sockaddr*) &cli_addr, &clilen);
 
 		// If the return is less than 0l, there is an error.
-		if (newsockfd < 0) {
+		if (clientSocket < 0) {
 			error("ERROR on accept");
 		} else {
 			fprintf(stderr, "Client connected\n");
-			handleClientConnection(newsockfd, gpioOutputPortLight1,
+			startThreadForClient(clientSocket, gpioOutputPortLight1,
 					gpioOutputPortLight2);
 		}
 
@@ -113,24 +121,41 @@ int createServer(int portno) {
 	return sockfd;
 }
 
-void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1,
+void startThreadForClient(int clientSocket, uint8_t gpioOutputPortLight1,
 		uint8_t gpioOutputPortLight2) {
+	ClientArgs *args;
+	args = (ClientArgs *) malloc(sizeof(ClientArgs));
+	args->clientSocket = clientSocket;
+	args->gpioOutputPortLight1 = gpioOutputPortLight1;
+	args->gpioOutputPortLight2 = gpioOutputPortLight2;
+	pthread_t thread;
+	pthread_create(&thread, NULL, handleClientConnection, (void *) args);
+}
+
+void *handleClientConnection(void *ptr) {
+	int clientSocket;
+	uint8_t gpioOutputPortLight1, gpioOutputPortLight2;
 	int n;
 	int index;
 	uint64_t bytesReceived = 0;
 	char *buffer = malloc(BLOCKSIZE);
-	// If the return is less than 0l, there is an error.
+	struct ClientArgs *args;
+
+	args = (ClientArgs *) ptr;
+	clientSocket = args->clientSocket;
+	gpioOutputPortLight1 = args->gpioOutputPortLight1;
+	gpioOutputPortLight2 = args->gpioOutputPortLight2;
 
 	for (index = 0; index < ITERATION_COUNT; index++) {
 		// Fill the buffer with all zeros.
 		memset(&buffer[0], 0, BLOCKSIZE);
 
 		// Read from the buffer when data arrives.
-		n = read(newsockfd, buffer, BLOCKSIZE);
+		n = read(clientSocket, buffer, BLOCKSIZE);
 
 		if (n < 1) {
 			error("ERROR reading from socket");
-			close(newsockfd);
+			close(clientSocket);
 		} else {
 			bytesReceived += n;
 		}
@@ -152,7 +177,9 @@ void handleClientConnection(int newsockfd, uint8_t gpioOutputPortLight1,
 
 	}
 
-	close(newsockfd);
+	close(clientSocket);
+	free(args);
+	return 0;
 }
 
 void turnLightOn(int outputPin) {
